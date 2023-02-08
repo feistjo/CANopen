@@ -2,6 +2,6 @@
   "name": "CANopen",
   "version": "0.0.0+20230126160025",
   "dependencies": {
-    "timers": "https://github.com/NU-Formula-Racing/CAN.git"
+    "CAN": "https://github.com/NU-Formula-Racing/CAN.git"
   }
 }
