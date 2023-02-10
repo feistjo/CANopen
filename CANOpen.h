@@ -5,10 +5,10 @@
 
 #include "can_interface.h"
 
-class CANopenTXMessage
+class CANopenSDO
 {
 public:
-    CANopenTXMessage(ICAN &can_interface, uint8_t node_id, std::map<uint32_t, uint8_t *> data_map)
+    CANopenSDO(ICAN &can_interface, uint8_t node_id, std::map<uint32_t, uint8_t *> data_map)
         : can_interface_{can_interface},
           sdo_message_{static_cast<uint16_t>(FunctionCode::kReceiveSDO) + node_id, 8, std::array<uint8_t, 8>()},
           sdo_response_message_{can_interface_,
@@ -75,6 +75,7 @@ public:
         bool expedited = message_data_pointer[0] >> 1 & 0b1;
         uint16_t od_index = message_data_pointer[1] | message_data_pointer[2] << 8;
         uint8_t od_subindex = message_data_pointer[3];
+
         auto data_map_value = data_map_.find(IndexesToUint32_t(od_index, od_subindex));
         if (data_map_value == data_map_.end())
         {
@@ -89,6 +90,10 @@ public:
             {
                 storage_data_pointer[i] = message_data_pointer[i];
             }
+        }
+        else
+        {
+            // unexpedited not yet implemented
         }
     }
 
