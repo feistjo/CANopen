@@ -11,7 +11,7 @@ public:
     CANopenSDO(ICAN &can_interface, uint8_t node_id, std::map<uint32_t, uint8_t *> data_map)
         : can_interface_{can_interface},
           sdo_message_{static_cast<uint16_t>(FunctionCode::kReceiveSDO) + node_id, 8, std::array<uint8_t, 8>()},
-          sdo_response_message_{can_interface_,
+          sdo_response_message_{can_interface,
                                 static_cast<uint16_t>(FunctionCode::kTransmitSDO) + node_id,
                                 [this]() { SDORXCallback(); },
                                 sdo_response_signal_},
@@ -69,6 +69,8 @@ public:
 
     void SDORXCallback()
     {
+        // Serial.print("SDORX: ");
+        // Serial.println(sdo_response_signal_.value_ref(), HEX);
         uint8_t *message_data_pointer = reinterpret_cast<uint8_t *>(&(sdo_response_signal_.value_ref()));
         CCS ccs = static_cast<CCS>(message_data_pointer[0] >> 5);
         uint8_t data_len = 4 - (message_data_pointer[0] >> 2 & 0b11);
@@ -79,16 +81,18 @@ public:
         auto data_map_value = data_map_.find(IndexesToUint32_t(od_index, od_subindex));
         if (data_map_value == data_map_.end())
         {
-            // Data not found, ignore
+            // Serial.println("Data not found");
             return;
         }
+        // Serial.println(
+        //     "Data found!......................................................................................");
 
         uint8_t *storage_data_pointer = data_map_value->second;
         if (expedited)
         {
             for (int i = 0; i < data_len; i++)
             {
-                storage_data_pointer[i] = message_data_pointer[i];
+                storage_data_pointer[i] = message_data_pointer[4 + i];
             }
         }
         else
@@ -99,13 +103,15 @@ public:
 
     static inline uint32_t IndexesToUint32_t(uint16_t od_index, uint8_t od_subindex)
     {
-        return od_index << 8 & od_subindex;
+        return od_index << 8 | od_subindex;
     }
+
+    void Init() { can_interface_.RegisterRXMessage(sdo_response_message_); }
 
 private:
     ICAN &can_interface_;
     CANMessage sdo_message_;
-    MakeUnsignedCANSignal(uint64_t, 0, 8, 1, 0) sdo_response_signal_;
+    MakeUnsignedCANSignal(uint64_t, 0, 64, 1, 0) sdo_response_signal_;
     CANRXMessage<1> sdo_response_message_;
     std::map<uint32_t, uint8_t *> data_map_;
 };
